@@ -3,18 +3,19 @@ package models
 import "gorm.io/gorm"
 
 type Transaction struct {
-	gorm.Model
 	Type     string  `json:"type"`
 	Currency string  `json:"currency"`
 	Amount   float64 `json:"amount"`
-	Wallet   string  `json:"wallet"`
+	From     string  `json:"from"`
+	To       string  `json:"to"`
 	Status   string  `json:"status"`
 }
 
-type Balance struct {
+type Wallet struct {
 	gorm.Model
-	Wallet   string  `json:"wallet"`
-	Currency string  `json:"currency"`
-	Amount   float64 `json:"amount"`
-	Frozen   float64 `json:"frozen"`
+	WalletID      string  `gorm:"uniqueIndex;autoIncrement"`
+	WalletNum     string  //`json:"wallet_num"`
+	Currency      string  `json:"currency"`
+	ActualBalance float64 `json:"amount"`
+	FrozenBalance float64 `json:"frozen"`
 }
