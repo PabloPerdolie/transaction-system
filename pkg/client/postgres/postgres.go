@@ -20,7 +20,7 @@ func ConnectDB(ctx context.Context) (*gorm.DB, error) {
 		log.Println("Successfully connected to database")
 	}
 
-	if err = db.AutoMigrate(&models.Wallet{}); err != nil {
+	if err = db.AutoMigrate(&models.Wallet{}, &models.WalletData{}); err != nil {
 		log.Fatalf("Failed to AutoMigrate: %v", err)
 		return nil, err
 	}

@@ -13,9 +13,17 @@ type Transaction struct {
 
 type Wallet struct {
 	gorm.Model
-	WalletID      string  `gorm:"uniqueIndex;autoIncrement"`
-	WalletNum     string  //`json:"wallet_num"`
-	Currency      string  `json:"currency"`
-	ActualBalance float64 `json:"amount"`
-	FrozenBalance float64 `json:"frozen"`
+	Id         int        `gorm:"primaryKey"`
+	WalletNum  int        `gorm:"not null"`
+	Currency   string     `gorm:"not null"`
+	WalletData WalletData `gorm:"foreignKey:WalletID"`
+}
+
+type WalletData struct {
+	gorm.Model
+	WalletID int `gorm:"primaryKey"`
+	//WalletNum     string  //`json:"wallet_num"`
+	//Currency      string  `json:"currency"`
+	ActualBalance float64 `gorm:"not null"` //`json:"actual"`
+	FrozenBalance float64 `gorm:"not null"` //`json:"frozen"`
 }

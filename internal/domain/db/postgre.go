@@ -3,7 +3,6 @@ package db
 import (
 	"TestTask/internal/domain/models"
 	"context"
-	"fmt"
 	"gorm.io/gorm"
 	"log"
 	"math/rand"
@@ -22,9 +21,14 @@ type BalanceStorage struct {
 //}
 
 func (bs *BalanceStorage) CreateNewWallet(ctx context.Context, wallet models.Wallet) error {
-	wallet.WalletNum = generateRandomNumber()
-	wallet.ActualBalance = 0
-	wallet.FrozenBalance = 0
+	wallet = models.Wallet{
+		WalletNum: generateRandomNumber(),
+		Currency:  wallet.Currency,
+		WalletData: models.WalletData{
+			ActualBalance: 1000,
+			FrozenBalance: 0,
+		},
+	}
 
 	result := bs.db.Create(&wallet)
 	if result.Error != nil {
@@ -36,13 +40,31 @@ func (bs *BalanceStorage) CreateNewWallet(ctx context.Context, wallet models.Wal
 }
 
 func (bs *BalanceStorage) Invoice(ctx context.Context, transaction models.Transaction) error {
+	var wallet models.Wallet
+	if err := bs.db.Preload("WalletData").
+		First(&wallet, "wallet_num = ? AND currency = ?", transaction.To, transaction.Currency).
+		Error; err != nil {
+		log.Printf("wallet doesn't exist, %v", err)
+		return err
+	}
+
+	wallet.WalletData.ActualBalance += transaction.Amount
+
+	if err := bs.db.Save(&wallet).Error; err != nil {
+		log.Printf("failed to invoice wallet, %v", err)
+		return err
+	}
 
 	return nil
 }
 
-func generateRandomNumber() string {
+func (bs *BalanceStorage) WithDraw(ctx context.Context, transaction models.Transaction) {
+
+}
+
+func generateRandomNumber() int {
 	rand.Seed(time.Now().UnixNano())
 
 	randomNumber := rand.Intn(10000000000000000)
-	return fmt.Sprintf("%016d", randomNumber)
+	return randomNumber
 }
