@@ -1,7 +1,7 @@
 package db
 
 import (
-	"TestTask/internal/domain/models"
+	"TestTask/transaction_system/internal/domain/models"
 	"context"
 	"errors"
 	"gorm.io/gorm"

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"TestTask/internal/adapters/api/balance"
+	"TestTask/transaction_system/internal/adapters/api/balance"
 	"github.com/gorilla/mux"
 )
 

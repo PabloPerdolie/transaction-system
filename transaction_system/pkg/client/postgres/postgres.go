@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"TestTask/internal/domain/models"
+	"TestTask/transaction_system/internal/domain/models"
 	"context"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

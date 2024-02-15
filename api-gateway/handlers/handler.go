@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"TestTask/internal/domain/models"
+	"TestTask/transaction_system/internal/domain/models"
 	"encoding/json"
 	"fmt"
 	"net/http"

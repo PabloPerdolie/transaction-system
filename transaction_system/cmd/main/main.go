@@ -1,7 +1,7 @@
 package main
 
 import (
-	"TestTask/internal/adapters/api"
+	"TestTask/transaction_system/internal/adapters/api"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"log"

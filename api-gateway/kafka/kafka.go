@@ -1,7 +1,7 @@
 package kafka
 
 import (
-	"TestTask/internal/domain/models"
+	"TestTask/transaction_system/internal/domain/models"
 	"github.com/IBM/sarama"
 	"log"
 	"sync"
