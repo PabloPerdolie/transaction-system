@@ -2,14 +2,13 @@ package models
 
 import (
 	"gorm.io/gorm"
-	"sync"
 	"time"
 )
 
 type TransactionStatus struct {
-	ID        string
-	Status    string
-	WaitGroup *sync.WaitGroup
+	ID     string
+	Status string
+	//WaitGroup *sync.WaitGroup
 }
 
 type Transaction struct {
@@ -20,12 +19,12 @@ type Transaction struct {
 	From      string    `json:"from"`
 	To        string    `json:"to"`
 	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"` //todo
 }
 
 type Wallet struct {
 	gorm.Model
-	Id         int        `gorm:"primaryKey"`
+	Id         string     `gorm:"primaryKey"`
 	WalletNum  int        `gorm:"not null"`
 	Currency   string     `gorm:"not null"`
 	WalletData WalletData `gorm:"foreignKey:WalletID"`

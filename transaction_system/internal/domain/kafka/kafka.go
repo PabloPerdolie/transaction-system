@@ -1,67 +1,85 @@
-package main
+package kafka
 
 import (
+	"TestTask/transaction_system/internal/domain/models"
 	"encoding/json"
 	"github.com/IBM/sarama"
 	"log"
+	"time"
 )
 
-type MyMessage struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Value string `json:"value"`
+type KafkaClient struct {
+	producer sarama.SyncProducer
+	consumer sarama.Consumer
 }
 
-func InitKafka() {
-	consumer, err := sarama.NewConsumer([]string{"kafka:9092"}, nil)
-	if err != nil {
-		log.Fatalf("failed to create consumer: %v", err)
-	}
-	defer consumer.Close()
+func NewKafkaClient() (*KafkaClient, error) {
+	config := sarama.NewConfig()
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Retry.Max = 5
+	config.Producer.Retry.Backoff = 1000 * time.Millisecond
+	config.Producer.Return.Successes = true
 
-	partConsumer, err := consumer.ConsumePartition("ping", 0, sarama.OffsetNewest)
-	if err != nil {
-		log.Fatalf("failed to consume partition: %v", err)
-	}
-	defer partConsumer.Close()
+	brokers := []string{"localhost:9092"}
 
-	producer, err := sarama.NewSyncProducer([]string{"kafka:9092"}, nil)
+	producer, err := sarama.NewSyncProducer(brokers, config)
 	if err != nil {
-		log.Fatalf("failed to create producer: %v", err)
+		return nil, err
 	}
-	defer producer.Close()
+
+	consumer, err := sarama.NewConsumer(brokers, config)
+	if err != nil {
+		producer.Close()
+		return nil, err
+	}
+	log.Println("Successfully connected to kafka and create consumer and producer")
+
+	return &KafkaClient{
+		producer: producer,
+		consumer: consumer,
+	}, nil
+}
+
+func (kc *KafkaClient) StartConsumer() {
+	partitionConsumer, err := kc.consumer.ConsumePartition("wallets", 0, sarama.OffsetNewest)
+	if err != nil {
+		log.Fatalf("Failed to consume partition: %v", err)
+	}
+	log.Println("Consumer starting")
+	defer partitionConsumer.Close()
 
 	for {
 		select {
-		case msg, ok := <-partConsumer.Messages():
+		case msg, ok := <-partitionConsumer.Messages():
 			if !ok {
-				log.Println("Channel closed, exiting")
+				log.Println("Channel closed, exiting goroutine")
 				return
 			}
 
-			var receivedMessage MyMessage
-			err := json.Unmarshal(msg.Value, &receivedMessage)
-
+			var wallet models.Wallet
+			err := json.Unmarshal(msg.Value, &wallet)
 			if err != nil {
 				log.Printf("Error unmarshaling JSON: %v\n", err)
 				continue
 			}
 
-			log.Printf("Received message: %+v\n", receivedMessage)
-
-			responseText := receivedMessage.Name + " " + receivedMessage.Value + " ( " + receivedMessage.ID + " ) "
-
-			resp := &sarama.ProducerMessage{
-				Topic: "pong",
-				Key:   sarama.StringEncoder(receivedMessage.ID),
-				Value: sarama.StringEncoder(responseText),
-			}
-
-			_, _, err = producer.SendMessage(resp)
-			if err != nil {
-				log.Printf("Failed to send message to Kafka: %v", err)
+			if wallet.WalletNum == 0 {
+				log.Printf("Received %v", wallet)
+				transJSON, err := json.Marshal(models.TransactionStatus{
+					ID:     wallet.Id,
+					Status: "success",
+				})
+				if err != nil {
+					log.Fatalf("failed to marshal transaction: %v", err)
+				}
+				_, _, err = kc.producer.SendMessage(&sarama.ProducerMessage{
+					Topic: "status",
+					Value: sarama.ByteEncoder(transJSON),
+				})
+				if err != nil {
+					log.Fatalf("failed to send message to Kafka: %v", err)
+				}
 			}
 		}
 	}
-
 }

@@ -3,16 +3,16 @@ package kafka
 import "sync"
 
 type Wallet struct {
-	ID         string
-	WalletNum  int        `json:"wallet_num"`
-	Currency   string     `json:"cur"`
-	WalletData WalletData `json:"wallet_data"`
+	Id        string
+	WalletNum int    `json:"wallet_num"`
+	Currency  string `json:"cur"`
+	//WalletData WalletData `json:"wallet_data"`
 }
 
-type WalletData struct {
-	ActualBalance float64 `json:""` //todo
-	FrozenBalance float64 `json:""`
-}
+//type WalletData struct {
+//	ActualBalance float64 `json:""` //todo
+//	FrozenBalance float64 `json:""`
+//}
 
 type TransactionStatus struct {
 	ID        string

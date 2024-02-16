@@ -40,6 +40,22 @@ func (bs *BalanceStorage) CreateNewWallet(ctx context.Context, wallet models.Wal
 	return nil
 }
 
+func (bs *BalanceStorage) CreateNewCurrency(ctx context.Context, wallet models.Wallet) error {
+	wallet = models.Wallet{
+		WalletData: models.WalletData{
+			ActualBalance: 1000,
+			FrozenBalance: 0,
+		},
+	}
+
+	result := bs.db.Create(&wallet)
+	if result.Error != nil {
+		log.Printf("failed to create new wallet, %v", result.Error.Error())
+		return result.Error
+	}
+	return nil
+}
+
 func (bs *BalanceStorage) Invoice(ctx context.Context, transaction models.Transaction) error {
 	var wallet models.Wallet
 	if err := bs.db.Preload("WalletData").

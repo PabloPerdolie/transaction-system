@@ -106,7 +106,6 @@ func (kc *KafkaClient) ConsumeStatus(operationID string) (string, error) {
 
 	go func() {
 		defer close(doneChan)
-		defer kc.transactionStatusMap[operationID].WaitGroup.Done()
 
 		select {
 		case <-time.After(10 * time.Second):

@@ -22,7 +22,7 @@ func (h *Handlers) CreateNewBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wallet.ID = uuid.New().String()
+	wallet.Id = uuid.New().String()
 
 	err := h.KafkaClient.ProduceNewWallet(wallet)
 	if err != nil {
@@ -30,7 +30,7 @@ func (h *Handlers) CreateNewBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("Send %v", wallet)
-	status, err := h.KafkaClient.ConsumeStatus(wallet.ID)
+	status, err := h.KafkaClient.ConsumeStatus(wallet.Id)
 	if err != nil {
 		http.Error(w, "Error consuming status of the creation", http.StatusInternalServerError)
 		return

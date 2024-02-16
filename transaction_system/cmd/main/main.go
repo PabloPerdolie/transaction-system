@@ -1,27 +1,14 @@
 package main
 
 import (
-	"TestTask/transaction_system/internal/adapters/api"
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
-	"log"
-	"net/http"
-	"os"
+	"TestTask/transaction_system/internal/domain/kafka"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
-		panic(err)
-	}
-
-	router := mux.NewRouter()
-
-	http.Handle("/", router)
-	api.SetupRoutes(router)
-
-	err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+	client, err := kafka.NewKafkaClient()
 	if err != nil {
 		panic(err)
 	}
+
+	client.StartConsumer()
 }
