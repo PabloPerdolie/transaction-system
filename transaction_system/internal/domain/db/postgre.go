@@ -1,7 +1,7 @@
 package db
 
 import (
-	"TestTask/internal/domain/models"
+	"TestTask/transaction_system/internal/domain/models"
 	"context"
 	"errors"
 	"gorm.io/gorm"
@@ -37,6 +37,22 @@ func (bs *BalanceStorage) CreateNewWallet(ctx context.Context, wallet models.Wal
 		return result.Error
 	}
 
+	return nil
+}
+
+func (bs *BalanceStorage) CreateNewCurrency(ctx context.Context, wallet models.Wallet) error {
+	wallet = models.Wallet{
+		WalletData: models.WalletData{
+			ActualBalance: 1000,
+			FrozenBalance: 0,
+		},
+	}
+
+	result := bs.db.Create(&wallet)
+	if result.Error != nil {
+		log.Printf("failed to create new wallet, %v", result.Error.Error())
+		return result.Error
+	}
 	return nil
 }
 

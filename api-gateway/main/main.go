@@ -1,7 +1,7 @@
 package main
 
 import (
-	"TestTask/internal/adapters/api"
+	"TestTask/api-gateway/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"log"
@@ -18,7 +18,10 @@ func main() {
 	router := mux.NewRouter()
 
 	http.Handle("/", router)
-	api.SetupRoutes(router)
+
+	if err := handlers.SetupRoutes(router); err != nil {
+		panic(err)
+	}
 
 	err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
 	if err != nil {
