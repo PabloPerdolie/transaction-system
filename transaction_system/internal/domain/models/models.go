@@ -33,9 +33,7 @@ type Wallet struct {
 
 type WalletData struct {
 	gorm.Model
-	WalletID int `gorm:"primaryKey"`
-	//WalletNum     string  //`json:"wallet_num"`
-	//Currency      string  `json:"currency"`
+	WalletID      int     `gorm:"primaryKey"`
 	ActualBalance float64 `gorm:"not null"` //`json:"actual"`
 	FrozenBalance float64 `gorm:"not null"` //`json:"frozen"`
 }

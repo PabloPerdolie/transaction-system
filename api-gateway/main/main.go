@@ -1,4 +1,4 @@
-package api_gateway
+package main
 
 import (
 	"TestTask/api-gateway/handlers"
@@ -18,7 +18,10 @@ func main() {
 	router := mux.NewRouter()
 
 	http.Handle("/", router)
-	handlers.SetupRoutes(router)
+
+	if err := handlers.SetupRoutes(router); err != nil {
+		panic(err)
+	}
 
 	err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
 	if err != nil {
