@@ -24,9 +24,9 @@ type Transaction struct {
 
 type Wallet struct {
 	gorm.Model
-	Id         string     `gorm:"primaryKey"`
-	WalletNum  int        `gorm:"not null"`
-	Currency   string     `gorm:"not null"`
+	Id         string     `gorm:"-"`
+	WalletNum  int        `json:"wallet_num" ,gorm:"not null"`
+	Currency   string     `json:"cur" ,gorm:"not null"`
 	WalletData WalletData `gorm:"foreignKey:WalletID"`
 }
 

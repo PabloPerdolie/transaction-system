@@ -1,7 +1,10 @@
 package kafka
 
 import (
+	"TestTask/transaction_system/internal/domain/db"
 	"TestTask/transaction_system/internal/domain/models"
+	"TestTask/transaction_system/pkg/client/postgres"
+	"context"
 	"encoding/json"
 	"github.com/IBM/sarama"
 	"log"
@@ -11,6 +14,7 @@ import (
 type KafkaClient struct {
 	producer sarama.SyncProducer
 	consumer sarama.Consumer
+	Storage  db.BalanceStorage
 }
 
 func NewKafkaClient() (*KafkaClient, error) {
@@ -34,9 +38,18 @@ func NewKafkaClient() (*KafkaClient, error) {
 	}
 	log.Println("Successfully connected to kafka and create consumer and producer")
 
+	conDb, err := postgres.ConnectDB(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
 	return &KafkaClient{
 		producer: producer,
 		consumer: consumer,
+		Storage: db.BalanceStorage{
+			Context: context.Background(),
+			Db:      conDb,
+		},
 	}, nil
 }
 
@@ -63,23 +76,56 @@ func (kc *KafkaClient) StartConsumer() {
 				continue
 			}
 
+			log.Printf("Received %v", wallet)
+
 			if wallet.WalletNum == 0 {
-				log.Printf("Received %v", wallet)
-				transJSON, err := json.Marshal(models.TransactionStatus{
+				status := "created"
+
+				if err := kc.Storage.CreateNewWallet(context.Background(), wallet); err != nil {
+					status = "error"
+					log.Printf("failed to create new wallet: %v", err)
+				} else {
+					status = "success"
+				}
+
+				statusJSON, err := json.Marshal(models.TransactionStatus{
 					ID:     wallet.Id,
-					Status: "success",
+					Status: status,
 				})
 				if err != nil {
-					log.Fatalf("failed to marshal transaction: %v", err)
+					log.Fatalf("failed to marshal status: %v", err)
 				}
-				_, _, err = kc.producer.SendMessage(&sarama.ProducerMessage{
-					Topic: "status",
-					Value: sarama.ByteEncoder(transJSON),
+				kc.ProduceStatus("status", statusJSON)
+
+			} else {
+				status := "created"
+
+				if err := kc.Storage.CreateNewCurrency(context.Background(), wallet); err != nil {
+					status = "error"
+					log.Printf("failed to create new wallet: %v", err)
+				} else {
+					status = "success"
+				}
+
+				statusJSON, err := json.Marshal(models.TransactionStatus{
+					ID:     wallet.Id,
+					Status: status,
 				})
 				if err != nil {
-					log.Fatalf("failed to send message to Kafka: %v", err)
+					log.Fatalf("failed to marshal status: %v", err)
 				}
+				kc.ProduceStatus("status", statusJSON)
 			}
 		}
+	}
+}
+
+func (kc *KafkaClient) ProduceStatus(topic string, msg []byte) {
+	_, _, err := kc.producer.SendMessage(&sarama.ProducerMessage{
+		Topic: topic,
+		Value: sarama.ByteEncoder(msg),
+	})
+	if err != nil {
+		log.Fatalf("failed to send message to Kafka: %v", err)
 	}
 }

@@ -11,8 +11,8 @@ import (
 )
 
 type BalanceStorage struct {
-	context context.Context
-	db      *gorm.DB
+	Context context.Context
+	Db      *gorm.DB
 }
 
 //func NewBalanceStorage() BalanceStorage {
@@ -31,34 +31,38 @@ func (bs *BalanceStorage) CreateNewWallet(ctx context.Context, wallet models.Wal
 		},
 	}
 
-	result := bs.db.Create(&wallet)
+	result := bs.Db.Create(&wallet)
 	if result.Error != nil {
 		log.Printf("failed to create new wallet, %v", result.Error.Error())
 		return result.Error
 	}
-
+	log.Printf("Created wallet: %v", wallet)
 	return nil
 }
 
 func (bs *BalanceStorage) CreateNewCurrency(ctx context.Context, wallet models.Wallet) error {
 	wallet = models.Wallet{
+		WalletNum: wallet.WalletNum,
+		Currency:  wallet.Currency,
 		WalletData: models.WalletData{
 			ActualBalance: 1000,
 			FrozenBalance: 0,
 		},
 	}
 
-	result := bs.db.Create(&wallet)
+	result := bs.Db.Create(&wallet)
 	if result.Error != nil {
 		log.Printf("failed to create new wallet, %v", result.Error.Error())
 		return result.Error
 	}
+	log.Printf("Created wallet: %v", wallet)
+
 	return nil
 }
 
 func (bs *BalanceStorage) Invoice(ctx context.Context, transaction models.Transaction) error {
 	var wallet models.Wallet
-	if err := bs.db.Preload("WalletData").
+	if err := bs.Db.Preload("WalletData").
 		First(&wallet, "wallet_num = ? AND currency = ?", transaction.To, transaction.Currency).
 		Error; err != nil {
 		log.Printf("wallet doesn't exist, %v", err)
@@ -67,7 +71,7 @@ func (bs *BalanceStorage) Invoice(ctx context.Context, transaction models.Transa
 
 	wallet.WalletData.ActualBalance += transaction.Amount
 
-	if err := bs.db.Save(&wallet).Error; err != nil {
+	if err := bs.Db.Save(&wallet).Error; err != nil {
 		log.Printf("failed to invoice wallet, %v", err)
 		return err
 	}
@@ -77,7 +81,7 @@ func (bs *BalanceStorage) Invoice(ctx context.Context, transaction models.Transa
 
 func (bs *BalanceStorage) WithDraw(ctx context.Context, transaction models.Transaction) error {
 	var senderWallet models.Wallet
-	if err := bs.db.Preload("WalletData").
+	if err := bs.Db.Preload("WalletData").
 		First(&senderWallet, "wallet_num = ? AND currency = ?", transaction.From, transaction.Currency).
 		Error; err != nil {
 		log.Printf("sender's wallet doesn't exist, %v", err)
@@ -85,7 +89,7 @@ func (bs *BalanceStorage) WithDraw(ctx context.Context, transaction models.Trans
 	}
 
 	var receiverWallet models.Wallet
-	if err := bs.db.Preload("WalletData").
+	if err := bs.Db.Preload("WalletData").
 		First(&receiverWallet, "wallet_num = ? AND currency = ?", transaction.To, transaction.Currency).
 		Error; err != nil {
 		log.Printf("receiver's wallet doesn't exist, %v", err)
@@ -99,7 +103,7 @@ func (bs *BalanceStorage) WithDraw(ctx context.Context, transaction models.Trans
 	senderWallet.WalletData.ActualBalance -= transaction.Amount
 	receiverWallet.WalletData.ActualBalance += transaction.Amount
 
-	if err := bs.db.Transaction(func(tx *gorm.DB) error {
+	if err := bs.Db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(&senderWallet).Error; err != nil {
 			log.Printf("failed to save data , %v", err)
 			return err
