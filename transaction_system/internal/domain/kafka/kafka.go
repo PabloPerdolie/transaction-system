@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"github.com/IBM/sarama"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -53,12 +54,13 @@ func NewKafkaClient() (*KafkaClient, error) {
 	}, nil
 }
 
-func (kc *KafkaClient) StartConsumer() {
+func (kc *KafkaClient) StartWalletsConsumer(group *sync.WaitGroup) {
+	defer group.Done()
 	partitionConsumer, err := kc.consumer.ConsumePartition("wallets", 0, sarama.OffsetNewest)
 	if err != nil {
 		log.Fatalf("Failed to consume partition: %v", err)
 	}
-	log.Println("Consumer starting")
+	log.Println("Wallets consumer starting")
 	defer partitionConsumer.Close()
 
 	for {
@@ -128,4 +130,73 @@ func (kc *KafkaClient) ProduceStatus(topic string, msg []byte) {
 	if err != nil {
 		log.Fatalf("failed to send message to Kafka: %v", err)
 	}
+}
+
+func (kc *KafkaClient) StartTransactionsConsumer(group *sync.WaitGroup) {
+	defer group.Done()
+	partitionConsumer, err := kc.consumer.ConsumePartition("transactions", 0, sarama.OffsetNewest)
+	if err != nil {
+		log.Fatalf("Failed to consume partition: %v", err)
+	}
+	log.Println("Transactions consumer starting")
+	defer partitionConsumer.Close()
+
+	for {
+		select {
+		case msg, ok := <-partitionConsumer.Messages():
+			if !ok {
+				log.Println("Channel closed, exiting goroutine")
+				return
+			}
+
+			var transaction models.Transaction
+			err := json.Unmarshal(msg.Value, &transaction)
+			if err != nil {
+				log.Printf("Error unmarshaling JSON: %v\n", err)
+				continue
+			}
+
+			log.Printf("Received %v", transaction)
+
+			if transaction.From == 0 {
+				status := "created"
+
+				if err := kc.Storage.Invoice(context.Background(), transaction); err != nil {
+					status = "error"
+					log.Printf("failed to invoice: %v", err)
+				} else {
+					status = "success"
+				}
+
+				statusJSON, err := json.Marshal(models.TransactionStatus{
+					ID:     transaction.ID,
+					Status: status,
+				})
+				if err != nil {
+					log.Fatalf("failed to marshal status: %v", err)
+				}
+				kc.ProduceStatus("status", statusJSON)
+
+			} else {
+				status := "created"
+
+				if err := kc.Storage.WithDraw(context.Background(), transaction); err != nil {
+					status = "error"
+					log.Printf("failed to withdraw: %v", err)
+				} else {
+					status = "success"
+				}
+
+				statusJSON, err := json.Marshal(models.TransactionStatus{
+					ID:     transaction.ID,
+					Status: status,
+				})
+				if err != nil {
+					log.Fatalf("failed to marshal status: %v", err)
+				}
+				kc.ProduceStatus("status", statusJSON)
+			}
+		}
+	}
+
 }

@@ -4,6 +4,7 @@ import (
 	"TestTask/transaction_system/internal/domain/kafka"
 	"github.com/joho/godotenv"
 	"log"
+	"sync"
 )
 
 func main() {
@@ -16,6 +17,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	client.StartConsumer()
+	var WaitGroup sync.WaitGroup
+	WaitGroup.Add(2)
+	go client.StartWalletsConsumer(&WaitGroup)
+	go client.StartTransactionsConsumer(&WaitGroup)
+	WaitGroup.Wait()
 }

@@ -2,7 +2,6 @@ package models
 
 import (
 	"gorm.io/gorm"
-	"time"
 )
 
 type TransactionStatus struct {
@@ -12,14 +11,13 @@ type TransactionStatus struct {
 }
 
 type Transaction struct {
-	ID        string    `json:"id"`
-	Type      string    `json:"type"`
-	Currency  string    `json:"currency"`
-	Amount    float64   `json:"amount"`
-	From      string    `json:"from"`
-	To        string    `json:"to"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"` //todo
+	ID       string  `json:"id"`
+	Type     string  `json:"type"`
+	Currency string  `json:"cur"`
+	Amount   float64 `json:"amount"`
+	From     int     `json:"from"`
+	To       int     `json:"to"`
+	Status   string  `json:"status"`
 }
 
 type Wallet struct {
@@ -27,12 +25,28 @@ type Wallet struct {
 	Id         string     `gorm:"-"`
 	WalletNum  int        `json:"wallet_num" ,gorm:"not null"`
 	Currency   string     `json:"cur" ,gorm:"not null"`
-	WalletData WalletData `gorm:"foreignKey:WalletID"`
+	WalletId   int        `gorm:"not null"`
+	WalletData WalletData //`gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 type WalletData struct {
 	gorm.Model
-	WalletID      int     `gorm:"primaryKey"`
+	ID            int     `gorm:"primaryKey"`
 	ActualBalance float64 `gorm:"not null"` //`json:"actual"`
 	FrozenBalance float64 `gorm:"not null"` //`json:"frozen"`
+	WalletId      int     `gorm:"autoIncrement;autoIncrement:1"`
+}
+
+func (w *Wallet) BeforeCreate(tx *gorm.DB) error {
+	walletData := WalletData{
+		ActualBalance: 1000,
+		FrozenBalance: 0,
+	}
+	if err := tx.Create(&walletData).Error; err != nil {
+		return err
+	}
+
+	w.WalletId = walletData.WalletId
+
+	return nil
 }

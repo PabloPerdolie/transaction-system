@@ -25,10 +25,6 @@ func (bs *BalanceStorage) CreateNewWallet(ctx context.Context, wallet models.Wal
 	wallet = models.Wallet{
 		WalletNum: generateRandomNumber(),
 		Currency:  wallet.Currency,
-		WalletData: models.WalletData{
-			ActualBalance: 1000,
-			FrozenBalance: 0,
-		},
 	}
 
 	result := bs.Db.Create(&wallet)
@@ -36,6 +32,12 @@ func (bs *BalanceStorage) CreateNewWallet(ctx context.Context, wallet models.Wal
 		log.Printf("failed to create new wallet, %v", result.Error.Error())
 		return result.Error
 	}
+	//wallet.WalletId = wallet.WalletData.WalletId
+	//result = bs.Db.Create(&wallet)
+	//if result.Error != nil {
+	//	log.Printf("failed to create new wallet, %v", result.Error.Error())
+	//	return result.Error
+	//}
 	log.Printf("Created wallet: %v", wallet)
 	return nil
 }
@@ -44,10 +46,6 @@ func (bs *BalanceStorage) CreateNewCurrency(ctx context.Context, wallet models.W
 	wallet = models.Wallet{
 		WalletNum: wallet.WalletNum,
 		Currency:  wallet.Currency,
-		WalletData: models.WalletData{
-			ActualBalance: 1000,
-			FrozenBalance: 0,
-		},
 	}
 
 	result := bs.Db.Create(&wallet)
@@ -63,7 +61,8 @@ func (bs *BalanceStorage) CreateNewCurrency(ctx context.Context, wallet models.W
 func (bs *BalanceStorage) Invoice(ctx context.Context, transaction models.Transaction) error {
 	var wallet models.Wallet
 	if err := bs.Db.Preload("WalletData").
-		First(&wallet, "wallet_num = ? AND currency = ?", transaction.To, transaction.Currency).
+		Where("wallet_num = ? AND currency = ?", transaction.To, transaction.Currency).
+		Find(&wallet).
 		Error; err != nil {
 		log.Printf("wallet doesn't exist, %v", err)
 		return err
@@ -71,7 +70,7 @@ func (bs *BalanceStorage) Invoice(ctx context.Context, transaction models.Transa
 
 	wallet.WalletData.ActualBalance += transaction.Amount
 
-	if err := bs.Db.Save(&wallet).Error; err != nil {
+	if err := bs.Db.Save(&wallet.WalletData).Error; err != nil {
 		log.Printf("failed to invoice wallet, %v", err)
 		return err
 	}
@@ -104,11 +103,11 @@ func (bs *BalanceStorage) WithDraw(ctx context.Context, transaction models.Trans
 	receiverWallet.WalletData.ActualBalance += transaction.Amount
 
 	if err := bs.Db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(&senderWallet).Error; err != nil {
+		if err := tx.Save(&senderWallet.WalletData).Error; err != nil {
 			log.Printf("failed to save data , %v", err)
 			return err
 		}
-		if err := tx.Save(&receiverWallet).Error; err != nil {
+		if err := tx.Save(&receiverWallet.WalletData).Error; err != nil {
 			log.Printf("failed to save data, %v", err)
 			return err
 		}
