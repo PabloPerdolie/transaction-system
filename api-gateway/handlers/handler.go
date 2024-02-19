@@ -62,6 +62,7 @@ func (h *Handlers) Invoice(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 		return
 	}
+	log.Printf("Send %v", transaction)
 
 	status, err := h.KafkaClient.ConsumeStatus(transaction.ID)
 	if err != nil {

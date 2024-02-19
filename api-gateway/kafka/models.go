@@ -23,9 +23,9 @@ type TransactionStatus struct {
 type Transaction struct {
 	ID       string  `json:"id"`
 	Type     string  `json:"type"`
-	Currency string  `json:"currency"`
+	Currency string  `json:"cur"`
 	Amount   float64 `json:"amount"`
-	From     string  `json:"from"`
-	To       string  `json:"to"`
+	From     int     `json:"from"`
+	To       int     `json:"to"`
 	Status   string  `json:"status"`
 }
